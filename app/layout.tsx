@@ -14,6 +14,7 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.SITE_URL ?? "http://localhost:3000"),
   title: "UManage | Your life, organized",
   description: "A calmer way to manage the people, plans, and details that matter.",
   icons: {
