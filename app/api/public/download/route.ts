@@ -18,6 +18,30 @@ function escapeHtml(value: string) {
   })[character] ?? character);
 }
 
+function getLogoUrl() {
+  const candidates = [
+    process.env.RESEND_LOGO_URL,
+    process.env.SITE_URL,
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`,
+    process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`,
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try {
+      const url = new URL(candidate);
+      if (url.protocol !== "http:" && url.protocol !== "https:") continue;
+      if (["localhost", "127.0.0.1", "play.google.com"].includes(url.hostname)) continue;
+      return candidate.includes("/logo.") ? url.toString() : new URL("/logo.jpeg", url).toString();
+    } catch {
+      continue;
+    }
+  }
+
+  return undefined;
+}
+
 export async function POST(request: Request) {
   let payload: z.infer<typeof downloadSchema>;
 
@@ -37,14 +61,10 @@ export async function POST(request: Request) {
     const resend = new Resend(resendKey);
     const safeName = escapeHtml(payload.name);
     const from = process.env.RESEND_FROM ?? "Umanage <onboarding@resend.dev>";
-    const requestOrigin = new URL(request.url).origin;
-    const configuredLogoUrl = process.env.RESEND_LOGO_URL;
-    const configuredSiteUrl = process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL;
-    const logoUrl = configuredLogoUrl ?? (configuredSiteUrl ? new URL("/logo.jpeg", configuredSiteUrl).toString() : undefined);
-    if (!logoUrl || /localhost|127\.0\.0\.1/.test(logoUrl)) {
-      console.error("Set RESEND_LOGO_URL or SITE_URL to a public URL before sending email", { requestOrigin });
-      return NextResponse.json({ ok: false, error: "A public logo URL is not configured" }, { status: 503 });
-    }
+    const logoUrl = getLogoUrl();
+    const logoMarkup = logoUrl
+      ? `<img src="${escapeHtml(logoUrl)}" alt="Umanage" width="52" height="52" style="display:block;width:52px;height:52px;border-radius:12px;object-fit:cover" />`
+      : "";
     const { error } = await resend.emails.send({
       from,
       to: [payload.email],
@@ -64,7 +84,7 @@ The Umanage team`,
   <body style="margin:0;background:#f6f8fc;color:#17213a;font-family:Arial,sans-serif;line-height:1.6">
     <div style="max-width:620px;margin:0 auto;padding:32px 16px">
       <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;padding:36px">
-        <img src="${logoUrl}" alt="Umanage" width="52" height="52" style="display:block;width:52px;height:52px;border-radius:12px;object-fit:cover" />
+        ${logoMarkup}
         <h1 style="margin:28px 0 10px;color:#17213a;font-size:28px;line-height:1.2">Thank you for showing interest in Umanage, ${safeName}.</h1>
         <p style="color:#53627a">We are glad to have you with us. Umanage gives rental and property teams one clear place to run their day-to-day business.</p>
         <h2 style="margin:28px 0 12px;color:#17213a;font-size:18px">Manage your rental business with clarity</h2>
