@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
     const resend = new Resend(resendKey);
     const safeName = escapeHtml(payload.name);
-    const from = process.env.RESEND_FROM ?? "Umanage <onboarding@resend.dev>";
+    const from = process.env.RESEND_FROM ?? "Umanage <noreply@yashtek.in>";
     const logoUrl = getLogoUrl();
     const logoMarkup = logoUrl
       ? `<img src="${escapeHtml(logoUrl)}" alt="Umanage" width="52" height="52" style="display:block;width:52px;height:52px;border-radius:12px;object-fit:cover" />`
